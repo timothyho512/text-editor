@@ -1,0 +1,19 @@
+# OS cruft
+.DS_Store
+
+# Build outputs
+exec
+exec.dSYM/
+*.o
+*.out
+*.a
+*.so
+*.dylib
+*.gch
+*.log
+
+# Editor tooling
+.vscode/
+
+*.txt
+test1.cpp
