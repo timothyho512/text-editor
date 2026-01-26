@@ -5,7 +5,7 @@
 
 using namespace std;
 
-Editor::Editor(string filename) : buffer(filename), running(true), desire_col(0), scroll_offset_y(0), scroll_offset_x(0) {
+Editor::Editor(string filename) : buffer(filename), running(true), desire_col(0), scroll_offset_y(0), scroll_offset_x(0), current_match_row(0), current_match_col(0) {
 	cursor.row = 0;
 	cursor.col = 0;
 	init_ncurses();
@@ -20,6 +20,7 @@ void Editor::init_ncurses() {
 	noecho();
 	cbreak();
 	keypad(stdscr, TRUE);
+	set_escdelay(25); // was default (~1000ms); make ESC exit immediate
 }
 
 void Editor::render() {
@@ -47,16 +48,22 @@ void Editor::render() {
 
 	// draw status bar
 	string left_status = buffer.get_filename();
+	string middle_status = "";
 	if (buffer.get_isModified()) {
 		left_status += " [+]";
 	}
+	if (search_mode) {
+		middle_status = "search: " + search_term;
+	}
+	if (!search_mode) middle_status = "";
 	string right_status = to_string(cursor.row + 1) + ":" + to_string(cursor.col + 1);
     right_status += " | " + to_string(buffer.line_count()) + " lines";
 
-	int spaces_needed = width - right_status.length() - left_status.length();
-	if (spaces_needed <= 5) spaces_needed = 5;
+	int spaces_needed = width - right_status.length() - left_status.length() - middle_status.length();
+	int half_spaces_needed = spaces_needed / 2;
+	if (half_spaces_needed <= 5) half_spaces_needed = 5;
 
-	string status = left_status + string(spaces_needed, ' ') + right_status;
+	string status = left_status + string(half_spaces_needed, ' ') + middle_status + string(half_spaces_needed, ' ') + right_status;
 
 	mvprintw(height - 1, 0, status.c_str());
 
@@ -65,6 +72,33 @@ void Editor::render() {
 	refresh();
 }
 
+void Editor::jump_cursor_to_match() {
+	cursor.row = current_match_row;
+	cursor.col = current_match_col;
+	desire_col = cursor.col;
+}
+
+void Editor::enter_search_mode() {
+	search_mode = true;
+}
+
+void Editor::exit_search_mode() {
+	search_mode = false;
+}
+
+void Editor::search_next() {
+	if (buffer.find_next(search_term, current_match_row, current_match_col)) {
+		jump_cursor_to_match();
+	}
+
+}
+
+void Editor::search_previous() {
+	if (buffer.find_prev(search_term, current_match_row, current_match_col)) {
+		jump_cursor_to_match();
+	}
+
+}
 void Editor::adjust_vertical_scroll(int max_visible_lines) {
     // Scroll up if cursor is above viewport
     if (cursor.row < scroll_offset_y) {
@@ -167,36 +201,77 @@ void Editor::handle_input(int ch) {
         adjust_vertical_scroll(max_visible_lines);
         adjust_horizontal_scroll(max_visible_width);
 	}
-
+	// Search (Ctrl+F)
+	else if (ch == 6) {
+		if (!search_mode) {
+			enter_search_mode();
+		}
+	}
+	else if (ch == 27) {
+		if (search_mode) {
+			exit_search_mode();
+		}
+	}
+	// (Ctrl N)
+	else if (search_mode && ch == 14) {
+		search_next();
+		adjust_vertical_scroll(max_visible_lines);
+        adjust_horizontal_scroll(max_visible_width);
+	}
+	// (Ctrl P)
+	else if (search_mode && ch == 16) {
+		search_previous();
+		adjust_vertical_scroll(max_visible_lines);
+        adjust_horizontal_scroll(max_visible_width);
+	}
 	// Regular character insertion
 	else if (isprint(ch)) {
-		buffer.insert_char(cursor.row, cursor.col, ch);
-		cursor.col++;
-		desire_col = cursor.col;
+		if (search_mode) {
+			search_term += ch;
+		}
+		else {
+			buffer.insert_char(cursor.row, cursor.col, ch);
+			cursor.col++;
+			desire_col = cursor.col;
+		}
 	}
 
 	// Backspace
 	else if (ch == KEY_BACKSPACE || ch == 127 || ch == 8) {
-		if (cursor.col > 0) {
-			buffer.delete_char(cursor.row, cursor.col);
-			cursor.col--;
-			desire_col = cursor.col;
-		}
-		else if (cursor.row > 0) {
-			int prev_len = buffer.line_length(cursor.row - 1);
-			buffer.join_lines(cursor.row);
-			cursor.row--;
-			cursor.col = prev_len;
-			desire_col = cursor.col;
+		if (search_mode) {
+			if (!search_term.empty()) {
+				search_term.pop_back();
+			}
+		} else {
+			if (cursor.col > 0) {
+				buffer.delete_char(cursor.row, cursor.col);
+				cursor.col--;
+				desire_col = cursor.col;
+			}
+			else if (cursor.row > 0) {
+				int prev_len = buffer.line_length(cursor.row - 1);
+				buffer.join_lines(cursor.row);
+				cursor.row--;
+				cursor.col = prev_len;
+				desire_col = cursor.col;
+			}
 		}
 	}
 
 	// Enter
 	else if (ch == KEY_ENTER || ch == '\n' || ch == '\r') {
-		buffer.split_line(cursor.row, cursor.col);
-		cursor.row++;
-		cursor.col = 0;
-		desire_col = cursor.col;
+		if (search_mode) {
+			search_next();
+			adjust_vertical_scroll(max_visible_lines);
+        	adjust_horizontal_scroll(max_visible_width);
+		} else {
+			buffer.split_line(cursor.row, cursor.col);
+			cursor.row++;
+			cursor.col = 0;
+			desire_col = cursor.col;
+			adjust_vertical_scroll(max_visible_lines);
+        	adjust_horizontal_scroll(max_visible_width);
+		}
 	}
 
 	// Save (Ctrl+W)

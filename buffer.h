@@ -21,6 +21,9 @@ class Buffer {
     void split_line(int row, int col);
     void join_lines(int row);
 
+    bool find_next(const std::string& term, int& r, int& c);
+    bool find_prev(const std::string& term, int& r, int& c);
+
     bool islengthless(int row, int l) const;
 
     int line_count() const;

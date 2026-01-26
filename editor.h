@@ -18,6 +18,12 @@ class Editor {
     int desire_col;
     int scroll_offset_y;
     int scroll_offset_x;
+    
+    bool search_mode;
+    std::string search_term;
+    int current_match_row;
+    int current_match_col;
+
 
     void init_ncurses();
     void render();
@@ -30,6 +36,12 @@ class Editor {
     void adjust_vertical_scroll(int max_visible_lines);
     void adjust_horizontal_scroll(int max_visible_width);
     void update_cursor_column_with_desired();
+
+    void enter_search_mode();
+    void exit_search_mode();
+    void search_next();
+    void search_previous();
+    void jump_cursor_to_match();
 
 	public:
     Editor(std::string filename);

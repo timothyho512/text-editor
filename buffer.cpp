@@ -1,5 +1,6 @@
 #include "buffer.h"
 #include <fstream>
+#include <algorithm>
 #include <iostream>
 
 using namespace std;
@@ -80,6 +81,50 @@ bool Buffer::islengthless(int row, int l) const {
 	int len = lines[row].length();
 	if (l > len) return true;
 	return false;
+}
+
+bool Buffer::find_next(const string& term, int& r, int& c) {
+	for (size_t i = static_cast<size_t>(r); i < lines.size(); i++) {
+		const string& line = lines[i];
+
+		size_t start = i == static_cast<size_t>(r) ? static_cast<size_t>(c + 1) : 0;
+
+		size_t pos = line.find(term, start);
+		if (pos != string::npos) {
+			r = static_cast<int>(i);
+            c = static_cast<int>(pos);
+			return true;
+		}
+	}
+	return false;
+}
+
+bool Buffer::find_prev(const string& term, int& r, int& c) {
+	if (term.empty()) return false;
+    if (r < 0) return false;
+
+	int best_r = -1;
+	int best_c = -1;
+	for (size_t i = 0; i <= static_cast<size_t>(r) && i < lines.size(); i++) {
+		
+		string line = lines[i];
+		size_t limit = line.size();
+        if (i == static_cast<size_t>(r)) {
+            if (c <= 0) limit = 0;
+            else limit = std::min(static_cast<size_t>(c), line.size());
+        }
+		if (limit >= term.size()) {
+			size_t pos = line.rfind(term, limit);
+			if (pos != string::npos && pos + term.size() <= limit) {
+				best_r = static_cast<int>(i);
+				best_c = static_cast<int>(pos);
+			}
+		}
+	}
+	if (best_r == -1) return false;
+	r = best_r;
+	c = best_c;
+	return true;
 }
 
 
