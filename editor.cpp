@@ -189,6 +189,10 @@ void Editor::adjust_scroll_to_cursor() {
 }
 
 void Editor::handle_input(int ch) {
+	if (search_mode) {
+		handle_search_input(ch);
+		return;
+	}
 	// Arrow Keys
 	if (ch == KEY_UP) {
 		move_cursor_up();
@@ -208,71 +212,39 @@ void Editor::handle_input(int ch) {
 		move_cursor_right();
         adjust_scroll_to_cursor();
 	}
-	// Search (Ctrl+F)
+	// Search
 	else if (ch == CTRL_F) {
-		if (!search_mode) {
-			enter_search_mode();
-		}
-	}
-	else if (ch == ESC) {
-		if (search_mode) {
-			exit_search_mode();
-		}
-	}
-	// (Ctrl N)
-	else if (search_mode && ch == CTRL_N) {
-		search_next();
-		adjust_scroll_to_cursor();
-	}
-	// (Ctrl P)
-	else if (search_mode && ch == CTRL_P) {
-		search_previous();
-		adjust_scroll_to_cursor();
+		enter_search_mode();
 	}
 	// Regular character insertion
 	else if (isprint(ch)) {
-		if (search_mode) {
-			search_term += ch;
-		}
-		else {
-			buffer.insert_char(cursor.row, cursor.col, ch);
-			cursor.col++;
-			desire_col = cursor.col;
-		}
+		buffer.insert_char(cursor.row, cursor.col, ch);
+		cursor.col++;
+		desire_col = cursor.col;
 	}
 
 	// Backspace
 	else if (ch == KEY_BACKSPACE || ch == 127 || ch == 8) {
-		if (search_mode) {
-			if (!search_term.empty()) {
-				search_term.pop_back();
-			}
-		} else {
-			if (cursor.col > 0) {
-				buffer.delete_char(cursor.row, cursor.col);
-				cursor.col--;
-				desire_col = cursor.col;
-			}
-			else if (cursor.row > 0) {
-				int prev_len = buffer.line_length(cursor.row - 1);
-				buffer.join_lines(cursor.row);
-				cursor.row--;
-				cursor.col = prev_len;
-				desire_col = cursor.col;
-			}
+		if (cursor.col > 0) {
+			buffer.delete_char(cursor.row, cursor.col);
+			cursor.col--;
+			desire_col = cursor.col;
+		}
+		else if (cursor.row > 0) {
+			int prev_len = buffer.line_length(cursor.row - 1);
+			buffer.join_lines(cursor.row);
+			cursor.row--;
+			cursor.col = prev_len;
+			desire_col = cursor.col;
 		}
 	}
 
 	// Enter
 	else if (ch == KEY_ENTER || ch == '\n' || ch == '\r') {
-		if (search_mode) {
-			search_next();
-		} else {
-			buffer.split_line(cursor.row, cursor.col);
-			cursor.row++;
-			cursor.col = 0;
-			desire_col = cursor.col;
-		}
+		buffer.split_line(cursor.row, cursor.col);
+		cursor.row++;
+		cursor.col = 0;
+		desire_col = cursor.col;
 		adjust_scroll_to_cursor();
 	}
 
@@ -306,6 +278,35 @@ void Editor::handle_input(int ch) {
 	// Quit (Ctrl+X)
 	else if (ch == CTRL_X) {
 		running = false;
+	}
+}
+
+void Editor::handle_search_input(int ch) {
+	// Exit Search
+	if (ch == ESC) {
+		exit_search_mode();
+	}
+	// Search next (Ctrl N)
+	else if (ch == CTRL_N) {
+		search_next();
+		adjust_scroll_to_cursor();
+	}
+	// Search previous (CTRL_P)
+	else if (ch == CTRL_P) {
+		search_previous();
+		adjust_scroll_to_cursor();
+	}
+	else if (isprint(ch)) {
+		search_term += ch;
+	}
+	else if (ch == KEY_BACKSPACE || ch == 127 || ch == 8) {
+		if (!search_term.empty()) {
+			search_term.pop_back();
+		}
+	}
+	else if (ch == KEY_ENTER || ch == '\n' || ch == '\r') {
+		search_next();
+		adjust_scroll_to_cursor();
 	}
 }
 

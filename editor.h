@@ -39,6 +39,7 @@ class Editor {
     void init_ncurses();
     void render();
     void handle_input(int ch);
+    void handle_search_input(int ch);
 
     void move_cursor_up();
     void move_cursor_down();
