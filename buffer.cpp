@@ -56,6 +56,8 @@ void Buffer::insert_char(int row, int col, char c) {
 	// lines[row].insert(col, 1, c);
 	int r, d;
 	InsertCharCommand* i = new InsertCharCommand(row, col, c);
+	for (auto cmd : redo_stack) delete cmd;
+	redo_stack.clear();
 	i->execute(*this, r, d);
 	undo_stack.push_back(i);
 	is_modified = true;
@@ -66,10 +68,12 @@ void Buffer::delete_char(int row, int col) {
 		// lines[row].erase(col - 1, 1);
 		int r, d;
 		DeleteCharCommand* i = new DeleteCharCommand(row, col);
+		for (auto cmd : redo_stack) delete cmd;
+		redo_stack.clear();
 		i->execute(*this, r, d);
 		undo_stack.push_back(i);
+		is_modified = true;
 	}
-	is_modified = true;
 }
 
 void Buffer::split_line(int row, int col) {
@@ -79,6 +83,8 @@ void Buffer::split_line(int row, int col) {
 	// lines[row] = before;
 	// lines.insert(lines.begin() + row + 1, after);
 	SplitLineCommand* i = new SplitLineCommand(row, col);
+	for (auto cmd : redo_stack) delete cmd;
+	redo_stack.clear();
 	i->execute(*this, r, d);
 	undo_stack.push_back(i);
 	is_modified = true;
