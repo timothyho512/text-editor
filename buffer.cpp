@@ -1,4 +1,7 @@
 #include "buffer.h"
+#include "insertcharcommand.h"
+#include "deletecharcommand.h"
+#include "splitlinecommand.h"
 #include <fstream>
 #include <algorithm>
 #include <iostream>
@@ -50,22 +53,34 @@ void Buffer::save_to_file() {
 }
 
 void Buffer::insert_char(int row, int col, char c) {
-	lines[row].insert(col, 1, c);
+	// lines[row].insert(col, 1, c);
+	int r, d;
+	InsertCharCommand* i = new InsertCharCommand(row, col, c);
+	i->execute(*this, r, d);
+	undo_stack.push_back(i);
 	is_modified = true;
 }
 
 void Buffer::delete_char(int row, int col) {
 	if (col > 0) {
-		lines[row].erase(col - 1, 1);
+		// lines[row].erase(col - 1, 1);
+		int r, d;
+		DeleteCharCommand* i = new DeleteCharCommand(row, col);
+		i->execute(*this, r, d);
+		undo_stack.push_back(i);
 	}
 	is_modified = true;
 }
 
 void Buffer::split_line(int row, int col) {
-	string before = lines[row].substr(0, col);
-	string after = lines[row].substr(col);
-	lines[row] = before;
-	lines.insert(lines.begin() + row + 1, after);
+	int r, d;
+	// string before = lines[row].substr(0, col);
+	// string after = lines[row].substr(col);
+	// lines[row] = before;
+	// lines.insert(lines.begin() + row + 1, after);
+	SplitLineCommand* i = new SplitLineCommand(row, col);
+	i->execute(*this, r, d);
+	undo_stack.push_back(i);
 	is_modified = true;
 }
 
@@ -125,6 +140,24 @@ bool Buffer::find_prev(const string& term, int& r, int& c) {
 	r = best_r;
 	c = best_c;
 	return true;
+}
+
+void Buffer::undo(int& row, int& col) {
+	if (!undo_stack.empty()) {
+		Command* i = undo_stack.back();
+		undo_stack.pop_back();
+		i->undo(*this, row, col);
+		redo_stack.push_back(i);
+	}
+}
+
+void Buffer::redo(int& row, int& col) {
+	if (!redo_stack.empty()) {
+		Command* i = redo_stack.back();
+		redo_stack.pop_back();
+		i->execute(*this, row, col);
+		undo_stack.push_back(i);
+	}
 }
 
 

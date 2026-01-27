@@ -4,11 +4,20 @@
 #include <string>
 #include <vector>
 
+class Command; // forward declaration
+
 class Buffer {
+    friend class InsertCharCommand;
+    friend class DeleteCharCommand;
+    friend class SplitLineCommand;
+
 	private:
     std::vector<std::string> lines;
     std::string filename;
     bool is_modified;
+
+    std::vector<Command*> undo_stack;
+    std::vector<Command*> redo_stack; // redo is reverse an undo action
 
 	public:
     Buffer(std::string fname);
@@ -23,6 +32,9 @@ class Buffer {
 
     bool find_next(const std::string& term, int& r, int& c);
     bool find_prev(const std::string& term, int& r, int& c);
+
+    void undo(int& row, int& col);
+    void redo(int& row, int& col);
 
     bool islengthless(int row, int l) const;
 

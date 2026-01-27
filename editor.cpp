@@ -72,6 +72,12 @@ void Editor::render() {
 	refresh();
 }
 
+void Editor::jump_cursor(const int& r, const int& c) {
+	cursor.row = r;
+	cursor.col = c;
+	desire_col = cursor.col;
+}
+
 void Editor::jump_cursor_to_match() {
 	cursor.row = current_match_row;
 	cursor.col = current_match_col;
@@ -271,6 +277,30 @@ void Editor::handle_input(int ch) {
 			desire_col = cursor.col;
 			adjust_vertical_scroll(max_visible_lines);
         	adjust_horizontal_scroll(max_visible_width);
+		}
+	}
+
+	// undo (Ctrl+U)
+	else if (ch == 21) {
+		int row = -1;
+		int col = -1;
+		buffer.undo(row, col);
+		if (row != -1 && col != -1) {
+			jump_cursor(row, col);
+			adjust_vertical_scroll(max_visible_lines);
+			adjust_horizontal_scroll(max_visible_width);
+		}
+	}
+
+	// redo (Ctrl+R)
+	else if (ch == 18) {
+		int row = -1;
+		int col = -1;
+		buffer.redo(row, col);
+		if (row != -1 && col != -1) {
+			jump_cursor(row, col);
+			adjust_vertical_scroll(max_visible_lines);
+			adjust_horizontal_scroll(max_visible_width);
 		}
 	}
 

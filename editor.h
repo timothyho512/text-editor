@@ -41,6 +41,7 @@ class Editor {
     void exit_search_mode();
     void search_next();
     void search_previous();
+    void jump_cursor(const int& r, const int& c);
     void jump_cursor_to_match();
 
 	public:

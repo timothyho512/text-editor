@@ -1,2 +1,2 @@
-exec:	main.cpp buffer.cpp buffer.h editor.cpp editor.h
-	clang++ -Wall -g main.cpp buffer.cpp editor.cpp -lncurses -o exec
+exec:	main.cpp buffer.cpp buffer.h editor.cpp editor.h command.h insertcharcommand.h insertcharcommand.cpp deletecharcommand.h deletecharcommand.cpp splitlinecommand.h splitlinecommand.cpp
+	clang++ -Wall -g main.cpp buffer.cpp editor.cpp insertcharcommand.cpp deletecharcommand.cpp splitlinecommand.cpp -lncurses -o exec
