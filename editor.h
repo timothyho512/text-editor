@@ -9,6 +9,17 @@ struct Cursor {
     int col;
 };
 
+enum ControlKeys {
+    CTRL_F = 6,
+    CTRL_N = 14,
+    CTRL_P = 16,
+    CTRL_R = 18,
+    CTRL_U = 21,
+    CTRL_W = 23,
+    CTRL_X = 24,
+    ESC = 27
+};
+
 class Editor {
 	private:
     static const int LINE_NUMBER_WIDTH = 5;

@@ -209,23 +209,23 @@ void Editor::handle_input(int ch) {
         adjust_scroll_to_cursor();
 	}
 	// Search (Ctrl+F)
-	else if (ch == 6) {
+	else if (ch == CTRL_F) {
 		if (!search_mode) {
 			enter_search_mode();
 		}
 	}
-	else if (ch == 27) {
+	else if (ch == ESC) {
 		if (search_mode) {
 			exit_search_mode();
 		}
 	}
 	// (Ctrl N)
-	else if (search_mode && ch == 14) {
+	else if (search_mode && ch == CTRL_N) {
 		search_next();
 		adjust_scroll_to_cursor();
 	}
 	// (Ctrl P)
-	else if (search_mode && ch == 16) {
+	else if (search_mode && ch == CTRL_P) {
 		search_previous();
 		adjust_scroll_to_cursor();
 	}
@@ -277,7 +277,7 @@ void Editor::handle_input(int ch) {
 	}
 
 	// undo (Ctrl+U)
-	else if (ch == 21) {
+	else if (ch == CTRL_U) {
 		int row = -1;
 		int col = -1;
 		buffer.undo(row, col);
@@ -288,7 +288,7 @@ void Editor::handle_input(int ch) {
 	}
 
 	// redo (Ctrl+R)
-	else if (ch == 18) {
+	else if (ch == CTRL_R) {
 		int row = -1;
 		int col = -1;
 		buffer.redo(row, col);
@@ -299,12 +299,12 @@ void Editor::handle_input(int ch) {
 	}
 
 	// Save (Ctrl+W)
-	else if (ch == 23) {
+	else if (ch == CTRL_W) {
 		buffer.save_to_file();
 	}
 
 	// Quit (Ctrl+X)
-	else if (ch == 24) {
+	else if (ch == CTRL_X) {
 		running = false;
 	}
 }
