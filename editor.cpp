@@ -179,33 +179,34 @@ void Editor::move_cursor_right() {
     }
 }
 
-void Editor::handle_input(int ch) {
+void Editor::adjust_scroll_to_cursor() {
 	int height, width;
 	getmaxyx(stdscr, height, width);
 	int max_visible_lines = height - 1;
 	int max_visible_width = width - LINE_NUMBER_WIDTH;
+	adjust_vertical_scroll(max_visible_lines);
+    adjust_horizontal_scroll(max_visible_width);
+}
+
+void Editor::handle_input(int ch) {
 	// Arrow Keys
 	if (ch == KEY_UP) {
 		move_cursor_up();
-        adjust_vertical_scroll(max_visible_lines);
-        adjust_horizontal_scroll(max_visible_width);
+		adjust_scroll_to_cursor();
 	}
 
 	else if (ch == KEY_DOWN) {
 		move_cursor_down();
-        adjust_vertical_scroll(max_visible_lines);
-        adjust_horizontal_scroll(max_visible_width);
+        adjust_scroll_to_cursor();
 	}
 	else if (ch == KEY_LEFT) {
 		move_cursor_left();
-        adjust_vertical_scroll(max_visible_lines);
-        adjust_horizontal_scroll(max_visible_width);
+        adjust_scroll_to_cursor();
 		
 	}
 	else if (ch == KEY_RIGHT) {
 		move_cursor_right();
-        adjust_vertical_scroll(max_visible_lines);
-        adjust_horizontal_scroll(max_visible_width);
+        adjust_scroll_to_cursor();
 	}
 	// Search (Ctrl+F)
 	else if (ch == 6) {
@@ -221,14 +222,12 @@ void Editor::handle_input(int ch) {
 	// (Ctrl N)
 	else if (search_mode && ch == 14) {
 		search_next();
-		adjust_vertical_scroll(max_visible_lines);
-        adjust_horizontal_scroll(max_visible_width);
+		adjust_scroll_to_cursor();
 	}
 	// (Ctrl P)
 	else if (search_mode && ch == 16) {
 		search_previous();
-		adjust_vertical_scroll(max_visible_lines);
-        adjust_horizontal_scroll(max_visible_width);
+		adjust_scroll_to_cursor();
 	}
 	// Regular character insertion
 	else if (isprint(ch)) {
@@ -268,16 +267,13 @@ void Editor::handle_input(int ch) {
 	else if (ch == KEY_ENTER || ch == '\n' || ch == '\r') {
 		if (search_mode) {
 			search_next();
-			adjust_vertical_scroll(max_visible_lines);
-        	adjust_horizontal_scroll(max_visible_width);
 		} else {
 			buffer.split_line(cursor.row, cursor.col);
 			cursor.row++;
 			cursor.col = 0;
 			desire_col = cursor.col;
-			adjust_vertical_scroll(max_visible_lines);
-        	adjust_horizontal_scroll(max_visible_width);
 		}
+		adjust_scroll_to_cursor();
 	}
 
 	// undo (Ctrl+U)
@@ -287,8 +283,7 @@ void Editor::handle_input(int ch) {
 		buffer.undo(row, col);
 		if (row != -1 && col != -1) {
 			jump_cursor(row, col);
-			adjust_vertical_scroll(max_visible_lines);
-			adjust_horizontal_scroll(max_visible_width);
+			adjust_scroll_to_cursor();
 		}
 	}
 
@@ -299,8 +294,7 @@ void Editor::handle_input(int ch) {
 		buffer.redo(row, col);
 		if (row != -1 && col != -1) {
 			jump_cursor(row, col);
-			adjust_vertical_scroll(max_visible_lines);
-			adjust_horizontal_scroll(max_visible_width);
+			adjust_scroll_to_cursor();
 		}
 	}
 

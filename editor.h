@@ -36,6 +36,7 @@ class Editor {
     void adjust_vertical_scroll(int max_visible_lines);
     void adjust_horizontal_scroll(int max_visible_width);
     void update_cursor_column_with_desired();
+    void adjust_scroll_to_cursor();
 
     void enter_search_mode();
     void exit_search_mode();
