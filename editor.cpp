@@ -24,21 +24,16 @@ void Editor::init_ncurses() {
 }
 
 void Editor::render() {
-	int height, width;
-	getmaxyx(stdscr, height, width);
-
-	// reserved for status bar, visible height
-	int max_visible_lines = height - 1;
-	int max_visible_width = width - LINE_NUMBER_WIDTH;
+	ViewportSize vp = get_view_port_size();
 	clear();
-	for (int i = scroll_offset_y; i < buffer.line_count() && i < scroll_offset_y + max_visible_lines; i++) {
+	for (int i = scroll_offset_y; i < buffer.line_count() && i < scroll_offset_y + vp.max_visible_lines; i++) {
 		// i + 1 is the line number
 		int line_number = i + 1;
 		int screen_row = i - scroll_offset_y;
 		string line = buffer.get_line(i);
 		string visible_portion;
 		if (line.length() > scroll_offset_x) {
-			visible_portion = line.substr(scroll_offset_x, max_visible_width);
+			visible_portion = line.substr(scroll_offset_x, vp.max_visible_width);
 		} else {
 			visible_portion = "";  // Line is shorter than scroll offset, show nothing
 		}
@@ -59,13 +54,13 @@ void Editor::render() {
 	string right_status = to_string(cursor.row + 1) + ":" + to_string(cursor.col + 1);
     right_status += " | " + to_string(buffer.line_count()) + " lines";
 
-	int spaces_needed = width - right_status.length() - left_status.length() - middle_status.length();
+	int spaces_needed = vp.width - right_status.length() - left_status.length() - middle_status.length();
 	int half_spaces_needed = spaces_needed / 2;
 	if (half_spaces_needed <= 5) half_spaces_needed = 5;
 
 	string status = left_status + string(half_spaces_needed, ' ') + middle_status + string(half_spaces_needed, ' ') + right_status;
 
-	mvprintw(height - 1, 0, status.c_str());
+	mvprintw(vp.height - 1, 0, status.c_str());
 
 	int cursor_screen_row = cursor.row - scroll_offset_y;
 	move(cursor_screen_row, cursor.col - scroll_offset_x + LINE_NUMBER_WIDTH);
@@ -180,12 +175,9 @@ void Editor::move_cursor_right() {
 }
 
 void Editor::adjust_scroll_to_cursor() {
-	int height, width;
-	getmaxyx(stdscr, height, width);
-	int max_visible_lines = height - 1;
-	int max_visible_width = width - LINE_NUMBER_WIDTH;
-	adjust_vertical_scroll(max_visible_lines);
-    adjust_horizontal_scroll(max_visible_width);
+	ViewportSize vp = get_view_port_size();
+	adjust_vertical_scroll(vp.max_visible_lines);
+    adjust_horizontal_scroll(vp.max_visible_width);
 }
 
 void Editor::handle_input(int ch) {
@@ -316,4 +308,12 @@ void Editor::run() {
 		int ch = getch();
 		handle_input(ch);
 	}
+}
+
+ViewportSize Editor::get_view_port_size() {
+	ViewportSize vp;
+    getmaxyx(stdscr, vp.height, vp.width);
+    vp.max_visible_lines = vp.height - 1;  // Reserve for status bar
+    vp.max_visible_width = vp.width - LINE_NUMBER_WIDTH;
+    return vp;
 }

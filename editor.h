@@ -9,6 +9,13 @@ struct Cursor {
     int col;
 };
 
+struct ViewportSize {
+    int height;
+    int width;
+    int max_visible_lines;
+    int max_visible_width;
+};
+
 enum ControlKeys {
     CTRL_F = 6,
     CTRL_N = 14,
@@ -56,6 +63,8 @@ class Editor {
     void search_previous();
     void jump_cursor(const int& r, const int& c);
     void jump_cursor_to_match();
+
+    ViewportSize get_view_port_size();
 
 	public:
     Editor(std::string filename);
