@@ -53,53 +53,33 @@ void Buffer::save_to_file() {
 	is_modified = false;
 }
 
-void Buffer::insert_char(int row, int col, char c) {
-	// lines[row].insert(col, 1, c);
-	int r, d;
-	InsertCharCommand* i = new InsertCharCommand(row, col, c);
-	for (auto cmd : redo_stack) delete cmd;
+void Buffer::execute_and_add_to_history(Command* cmd) {
+	for (auto c : redo_stack) delete c;
 	redo_stack.clear();
-	i->execute(*this, r, d);
-	undo_stack.push_back(i);
+
+	int r, d;
+	cmd->execute(*this, r, d);
+	undo_stack.push_back(cmd);
 	is_modified = true;
+}
+
+void Buffer::insert_char(int row, int col, char c) {
+	execute_and_add_to_history(new InsertCharCommand(row, col, c));
 }
 
 void Buffer::delete_char(int row, int col) {
 	if (col > 0) {
-		// lines[row].erase(col - 1, 1);
-		int r, d;
-		DeleteCharCommand* i = new DeleteCharCommand(row, col);
-		for (auto cmd : redo_stack) delete cmd;
-		redo_stack.clear();
-		i->execute(*this, r, d);
-		undo_stack.push_back(i);
-		is_modified = true;
+		execute_and_add_to_history(new DeleteCharCommand(row, col));
 	}
 }
 
 void Buffer::split_line(int row, int col) {
-	int r, d;
-	// string before = lines[row].substr(0, col);
-	// string after = lines[row].substr(col);
-	// lines[row] = before;
-	// lines.insert(lines.begin() + row + 1, after);
-	SplitLineCommand* i = new SplitLineCommand(row, col);
-	for (auto cmd : redo_stack) delete cmd;
-	redo_stack.clear();
-	i->execute(*this, r, d);
-	undo_stack.push_back(i);
-	is_modified = true;
+	execute_and_add_to_history(new SplitLineCommand(row, col));
 }
 
 void Buffer::join_lines(int row) {
 	if (row > 0) {
-		int r, d;
-		JoinLineCommand* i = new JoinLineCommand(row);
-		for (auto cmd : redo_stack) delete cmd;
-		redo_stack.clear();
-		i->execute(*this, r, d);
-		undo_stack.push_back(i);
-		is_modified = true;
+		execute_and_add_to_history(new JoinLineCommand(row));
 	}
 }
 

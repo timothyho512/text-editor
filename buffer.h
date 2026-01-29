@@ -26,6 +26,7 @@ class Buffer {
     void load_from_file();
     void save_to_file();
 
+    void execute_and_add_to_history(Command* cmd);
     void insert_char(int row, int col, char c);
     void delete_char(int row, int col);
     void split_line(int row, int col);
