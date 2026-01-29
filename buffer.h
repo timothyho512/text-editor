@@ -10,6 +10,7 @@ class Buffer {
     friend class InsertCharCommand;
     friend class DeleteCharCommand;
     friend class SplitLineCommand;
+    friend class JoinLineCommand;
 
 	private:
     std::vector<std::string> lines;

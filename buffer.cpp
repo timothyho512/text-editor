@@ -2,6 +2,7 @@
 #include "insertcharcommand.h"
 #include "deletecharcommand.h"
 #include "splitlinecommand.h"
+#include "joinlinecommand.h"
 #include <fstream>
 #include <algorithm>
 #include <iostream>
@@ -92,10 +93,14 @@ void Buffer::split_line(int row, int col) {
 
 void Buffer::join_lines(int row) {
 	if (row > 0) {
-		lines[row - 1] += lines[row];
-		lines.erase(lines.begin() + row);
+		int r, d;
+		JoinLineCommand* i = new JoinLineCommand(row);
+		for (auto cmd : redo_stack) delete cmd;
+		redo_stack.clear();
+		i->execute(*this, r, d);
+		undo_stack.push_back(i);
+		is_modified = true;
 	}
-	is_modified = true;
 }
 
 bool Buffer::islengthless(int row, int l) const {
