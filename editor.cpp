@@ -5,7 +5,7 @@
 
 using namespace std;
 
-Editor::Editor(string filename) : buffer(filename), running(true), desire_col(0), scroll_offset_y(0), scroll_offset_x(0), current_match_row(0), current_match_col(0) {
+Editor::Editor(string filename) : buffer(filename), running(true), desire_col(0), scroll_offset_y(0), scroll_offset_x(0), current_match_row(-1), current_match_col(-1) {
 	cursor.row = 0;
 	cursor.col = 0;
 	init_ncurses();
@@ -50,7 +50,16 @@ void Editor::render() {
 	if (search_mode) {
 		middle_status = "search: " + search_term;
 	}
-	if (!search_mode) middle_status = "";
+	if (replace_mode) {
+		if (replace_navigation_mode) {
+			middle_status = "Replace? (y)es (n)ext (p)previous (a)ll (q)uit";
+		} else {
+			middle_status = "search: " + search_term;
+			middle_status = middle_status + "   " + "replace with: " + replace_term;
+		}
+	}
+	
+	if (!search_mode && !replace_mode) middle_status = "";
 	string right_status = to_string(cursor.row + 1) + ":" + to_string(cursor.col + 1);
     right_status += " | " + to_string(buffer.line_count()) + " lines";
 
@@ -87,17 +96,58 @@ void Editor::exit_search_mode() {
 	search_mode = false;
 }
 
-void Editor::search_next() {
+bool Editor::search_next() {
+	if (search_term.empty()) {
+		current_match_row = -1;
+		current_match_col = -1;
+		return false;
+	}
+
 	if (buffer.find_next(search_term, current_match_row, current_match_col)) {
 		jump_cursor_to_match();
+		return true;
 	}
 
+	// if no last matched, restart from the top of the file
+	int wrap_r = 0;
+	int wrap_c = 0;
+	if (buffer.find_next(search_term, wrap_r, wrap_c)) {
+		current_match_row = wrap_r;
+		current_match_col = wrap_c;
+		jump_cursor_to_match();
+		return true;
+	}
+
+	current_match_row = -1;
+	current_match_col = -1;
+	return false;
 }
 
-void Editor::search_previous() {
+bool Editor::search_previous() {
+	if (search_term.empty()) {
+		current_match_row = -1;
+		current_match_col = -1;
+		return false;
+	}
+
 	if (buffer.find_prev(search_term, current_match_row, current_match_col)) {
 		jump_cursor_to_match();
+		return true;
 	}
+	int wrap_r = buffer.line_count();
+	int wrap_c = buffer.line_length(wrap_r);
+	if (buffer.find_prev(search_term, wrap_r, wrap_c)) {
+		current_match_row = wrap_r;
+		current_match_col = wrap_c;
+		jump_cursor_to_match();
+		return true;
+	}
+
+	// if no last matched, find from the bottom of the file
+	
+	current_match_row = -1;
+	current_match_col = -1;
+	return false;
 
 }
 void Editor::adjust_vertical_scroll(int max_visible_lines) {
@@ -274,31 +324,109 @@ void Editor::handle_input(int ch) {
 }
 
 void Editor::handle_search_input(int ch) {
+	if (replace_mode) {
+		handle_replace_input(ch);
+		return;
+	}
 	// Exit Search
 	if (ch == ESC) {
 		exit_search_mode();
 	}
+	// replace mode
+	else if (ch == CTRL_L) {
+		if (current_match_row != -1 && current_match_col != -1) {
+			enter_replace_mode();
+		}
+	}
 	// Search next (Ctrl N)
 	else if (ch == CTRL_N) {
-		search_next();
-		adjust_scroll_to_cursor();
+		if (search_next()) adjust_scroll_to_cursor();
 	}
 	// Search previous (CTRL_P)
 	else if (ch == CTRL_P) {
-		search_previous();
-		adjust_scroll_to_cursor();
+		if (search_previous()) {
+			adjust_scroll_to_cursor();
+		}
 	}
 	else if (isprint(ch)) {
+		current_match_row = -1;
+		current_match_col = -1;
 		search_term += ch;
 	}
 	else if (ch == KEY_BACKSPACE || ch == 127 || ch == 8) {
 		if (!search_term.empty()) {
+			current_match_row = -1;
+			current_match_col = -1;
 			search_term.pop_back();
 		}
 	}
 	else if (ch == KEY_ENTER || ch == '\n' || ch == '\r') {
-		search_next();
+		if (search_next()) adjust_scroll_to_cursor();
+	}
+}
+
+void Editor::handle_replace_input(int ch) {
+	if (replace_navigation_mode) {
+		handle_navigation_input(ch);
+		return;
+	}
+	// Exit replace
+	if (ch == ESC) {
+		exit_replace_mode();
+	}
+	else if (isprint(ch)) {
+		replace_term += ch;
+	}
+	else if (ch == KEY_BACKSPACE || ch == 127 || ch == 8) {
+		replace_term.pop_back();
+	}
+	else if (ch == KEY_ENTER || ch == '\n' || ch == '\r') {
+		// user navigation
+		// handle navigation input
+		enter_replace_navigation_mode();
+	}
+}
+
+void Editor::enter_replace_mode() {
+	replace_mode = true;
+}
+
+void Editor::exit_replace_mode() {
+	replace_mode = false;
+}
+void Editor::enter_replace_navigation_mode() {
+	replace_navigation_mode = true;
+}
+
+void Editor::exit_replace_navigation_mode() {
+	replace_navigation_mode = false;
+}
+
+void Editor::handle_navigation_input(int ch) {
+	// four options, (y)es (n)ext (p)previous (a)ll (q)uit"
+	if (ch == 'q') {
+		exit_replace_navigation_mode();
+	}
+	else if (ch == 'y') {
+		// replace
+		buffer.replace(search_term, replace_term, current_match_row, current_match_col);
+		if (search_next()) {
+			adjust_scroll_to_cursor();
+		} else {
+			replace_navigation_mode = false;
+			replace_mode = false;
+		}
+	}
+	else if (ch == 'n') {
+		// go to next term that matches
+		if (search_next()) adjust_scroll_to_cursor();
+	}
+	else if (ch == 'p') {
+		search_previous();
 		adjust_scroll_to_cursor();
+	}
+	else if (ch == 'a') {
+		//replace all matched
 	}
 }
 

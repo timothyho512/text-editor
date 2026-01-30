@@ -90,6 +90,7 @@ bool Buffer::islengthless(int row, int l) const {
 }
 
 bool Buffer::find_next(const string& term, int& r, int& c) {
+	if (r < 0) {r = 0; c = 0;}
 	for (size_t i = static_cast<size_t>(r); i < lines.size(); i++) {
 		const string& line = lines[i];
 
@@ -107,7 +108,8 @@ bool Buffer::find_next(const string& term, int& r, int& c) {
 
 bool Buffer::find_prev(const string& term, int& r, int& c) {
 	if (term.empty()) return false;
-    if (r < 0) return false;
+    // if (r < 0) return false;
+	if (r < 0) {r = 0; c = 0;}
 
 	int best_r = -1;
 	int best_c = -1;
@@ -131,6 +133,12 @@ bool Buffer::find_prev(const string& term, int& r, int& c) {
 	r = best_r;
 	c = best_c;
 	return true;
+}
+
+void Buffer::replace(std::string& search_term, std::string& replace_term, int& r, int& c) {
+	int term_len = search_term.length();
+	lines[r].replace(c, term_len, replace_term);
+	is_modified = true;
 }
 
 void Buffer::undo(int& row, int& col) {

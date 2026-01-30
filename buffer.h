@@ -35,6 +35,8 @@ class Buffer {
     bool find_next(const std::string& term, int& r, int& c);
     bool find_prev(const std::string& term, int& r, int& c);
 
+    void replace(std::string& search_term, std::string& replace_term, int& r, int& c);
+
     void undo(int& row, int& col);
     void redo(int& row, int& col);
 
