@@ -427,6 +427,9 @@ void Editor::handle_navigation_input(int ch) {
 	}
 	else if (ch == 'a') {
 		//replace all matched
+		buffer.replace_all(search_term, replace_term);
+		replace_navigation_mode = false;
+		replace_mode = false;
 	}
 }
 

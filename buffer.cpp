@@ -135,9 +135,24 @@ bool Buffer::find_prev(const string& term, int& r, int& c) {
 	return true;
 }
 
-void Buffer::replace(std::string& search_term, std::string& replace_term, int& r, int& c) {
+void Buffer::replace(const string& search_term, const string& replace_term, int& r, int& c) {
 	int term_len = search_term.length();
 	lines[r].replace(c, term_len, replace_term);
+	is_modified = true;
+}
+
+void Buffer:: replace_all(const string& search_term, const string& replace_term) {
+	int term_len = search_term.length();
+	int r = 0;
+	int c = 0;
+	bool running = true;
+	while (running) {
+		if (find_next(search_term, r, c)) {
+			lines[r].replace(c, term_len, replace_term);
+		} else {
+			running = false;
+		}
+	}
 	is_modified = true;
 }
 
