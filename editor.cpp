@@ -23,24 +23,99 @@ void Editor::init_ncurses() {
 	set_escdelay(25); // was default (~1000ms); make ESC exit immediate
 }
 
+bool Editor::is_selected(const int& r, const int& c) {
+	if (cursor.row == initial_selection_row) {
+		if (r == cursor.row) {
+			if (cursor.col > initial_selection_col) {
+				if (c <= cursor.col && c >= initial_selection_col) return true;
+			}
+			if (cursor.col < initial_selection_col) {
+				if (c >= cursor.col && c <= initial_selection_col) return true;
+			}
+		}
+	}
+	if (cursor.row > initial_selection_row) {
+		if (r >  initial_selection_row && r < cursor.row) {
+			return true;
+		}
+		if (r == cursor.row) {
+			if (c <= cursor.col) return true;
+		}
+		if (r == initial_selection_row) {
+			if (c >= initial_selection_col) return true;
+		}
+	}
+
+	if (cursor.row < initial_selection_row) {
+		if (r < initial_selection_row && r > cursor.row) {
+			return true;
+		}
+		if (r == cursor.row) {
+			if (c >= cursor.col) return true;
+		}
+		if (r == initial_selection_row) {
+			if (c <= initial_selection_col) return true;
+		}
+	}
+	// if (cursor.row > initial_selection_row) {
+
+	// }
+	// if ((r <= cursor.row &&  c <= cursor.col) && (r >= initial_selection_row && c >= initial_selection_col)) {
+	// 	return true;
+	// }
+	// if ((r <= initial_selection_row &&  c <= initial_selection_col) && (r >= cursor.row && c >= cursor.col)) {
+	// 	return true;
+	// }
+	return false;
+}
+
 void Editor::render() {
 	ViewportSize vp = get_view_port_size();
 	clear();
-	for (int i = scroll_offset_y; i < buffer.line_count() && i < scroll_offset_y + vp.max_visible_lines; i++) {
-		// i + 1 is the line number
-		int line_number = i + 1;
-		int screen_row = i - scroll_offset_y;
-		string line = buffer.get_line(i);
-		string visible_portion;
-		if (line.length() > scroll_offset_x) {
-			visible_portion = line.substr(scroll_offset_x, vp.max_visible_width);
-		} else {
-			visible_portion = "";  // Line is shorter than scroll offset, show nothing
+	if (visual_mode) {
+		for (int i = scroll_offset_y; i < buffer.line_count() && i < scroll_offset_y + vp.max_visible_lines; i++) {
+			int line_number = i + 1;
+			int screen_row = i - scroll_offset_y;
+			string line = buffer.get_line(i);
+			string visible_portion;
+			if (line.length() > scroll_offset_x) {
+				visible_portion = line.substr(scroll_offset_x, vp.max_visible_width);
+			} else {
+				visible_portion = "";  // Line is shorter than scroll offset, show nothing
+			}
+			if (visible_portion != "") {
+				for (int c = scroll_offset_x; c < visible_portion.length(); c++) {
+					char character = visible_portion[c];
+					int screen_col = c - scroll_offset_x;
+					if (is_selected(i, c)) {
+						attron(A_REVERSE);
+					}
+					mvprintw(screen_row, LINE_NUMBER_WIDTH + screen_col, "%c", character);
+					if (is_selected(i, c)) {
+						attroff(A_REVERSE);
+					}
+				}
+			} else {
+				mvprintw(screen_row, LINE_NUMBER_WIDTH, visible_portion.c_str());
+			}
+			mvprintw(screen_row, 0, "%d", line_number);
 		}
-		mvprintw(screen_row, 0, "%d", line_number);
-		mvprintw(screen_row, LINE_NUMBER_WIDTH, visible_portion.c_str());
+	} else {
+		for (int i = scroll_offset_y; i < buffer.line_count() && i < scroll_offset_y + vp.max_visible_lines; i++) {
+			// i + 1 is the line number shown on the left padding
+			int line_number = i + 1;
+			int screen_row = i - scroll_offset_y;
+			string line = buffer.get_line(i);
+			string visible_portion;
+			if (line.length() > scroll_offset_x) {
+				visible_portion = line.substr(scroll_offset_x, vp.max_visible_width);
+			} else {
+				visible_portion = "";  // Line is shorter than scroll offset, show nothing
+			}
+			mvprintw(screen_row, 0, "%d", line_number);
+			mvprintw(screen_row, LINE_NUMBER_WIDTH, visible_portion.c_str());
+		}
 	}
-
 	// draw status bar
 	string left_status = buffer.get_filename();
 	string middle_status = "";
@@ -235,6 +310,10 @@ void Editor::handle_input(int ch) {
 		handle_search_input(ch);
 		return;
 	}
+	if (visual_mode) {
+		handle_visual_input(ch);
+		return;
+	}
 	// Arrow Keys
 	if (ch == KEY_UP) {
 		move_cursor_up();
@@ -257,6 +336,9 @@ void Editor::handle_input(int ch) {
 	// Search
 	else if (ch == CTRL_F) {
 		enter_search_mode();
+	}
+	else if (ch == CTRL_B) {
+		enter_visual_mode();
 	}
 	// Regular character insertion
 	else if (isprint(ch)) {
@@ -402,6 +484,16 @@ void Editor::exit_replace_navigation_mode() {
 	replace_navigation_mode = false;
 }
 
+void Editor::enter_visual_mode() {
+	visual_mode = true;
+	initial_selection_row = cursor.row;
+	initial_selection_col = cursor.col;
+}
+
+void Editor::exit_visual_mode() {
+	visual_mode = false;
+}
+
 void Editor::handle_navigation_input(int ch) {
 	// four options, (y)es (n)ext (p)previous (a)ll (q)uit"
 	if (ch == 'q') {
@@ -430,6 +522,32 @@ void Editor::handle_navigation_input(int ch) {
 		buffer.replace_all(search_term, replace_term);
 		replace_navigation_mode = false;
 		replace_mode = false;
+	}
+}
+
+void Editor::handle_visual_input(int ch) {
+	// Exit Search
+	if (ch == ESC) {
+		exit_visual_mode();
+	}
+	// Arrow Keys
+	else if (ch == KEY_UP) {
+		move_cursor_up();
+		adjust_scroll_to_cursor();
+	}
+
+	else if (ch == KEY_DOWN) {
+		move_cursor_down();
+        adjust_scroll_to_cursor();
+	}
+	else if (ch == KEY_LEFT) {
+		move_cursor_left();
+        adjust_scroll_to_cursor();
+		
+	}
+	else if (ch == KEY_RIGHT) {
+		move_cursor_right();
+        adjust_scroll_to_cursor();
 	}
 }
 

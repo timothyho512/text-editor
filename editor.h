@@ -17,6 +17,7 @@ struct ViewportSize {
 };
 
 enum ControlKeys {
+    CTRL_B = 2,
     CTRL_F = 6,
     CTRL_L = 12,
     CTRL_N = 14,
@@ -48,6 +49,10 @@ class Editor {
 
     bool replace_navigation_mode;
 
+    bool visual_mode;
+    int initial_selection_row;
+    int initial_selection_col;
+
 
     void init_ncurses();
     void render();
@@ -55,6 +60,7 @@ class Editor {
     void handle_search_input(int ch);
     void handle_replace_input(int ch);
     void handle_navigation_input(int ch);
+    void handle_visual_input(int ch);
 
     void move_cursor_up();
     void move_cursor_down();
@@ -78,6 +84,10 @@ class Editor {
     bool search_previous();
     void jump_cursor(const int& r, const int& c); // only for the redo of undo
     void jump_cursor_to_match();
+
+    void enter_visual_mode();
+    void exit_visual_mode();
+    bool is_selected(const int& r, const int& c);
 
     ViewportSize get_view_port_size();
 
