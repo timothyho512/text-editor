@@ -2,6 +2,7 @@
 #define EDITOR_H
 
 #include <string>
+#include <vector>
 #include "buffer.h"
 
 struct Cursor {
@@ -16,14 +17,22 @@ struct ViewportSize {
     int max_visible_width;
 };
 
+struct Clipboard {
+    std::vector<std::string> textBuffer;
+    std::vector<std::string> copyBuffer;
+};
+
 enum ControlKeys {
     CTRL_B = 2,
+    CTRL_E = 5,
     CTRL_F = 6,
     CTRL_L = 12,
     CTRL_N = 14,
     CTRL_P = 16,
     CTRL_R = 18,
+    CTRL_T = 20,
     CTRL_U = 21,
+    CTRL_V = 22,
     CTRL_W = 23,
     CTRL_X = 24,
     ESC = 27
@@ -52,6 +61,7 @@ class Editor {
     bool visual_mode;
     int initial_selection_row;
     int initial_selection_col;
+    Clipboard clipboard;
 
 
     void init_ncurses();
@@ -88,6 +98,8 @@ class Editor {
     void enter_visual_mode();
     void exit_visual_mode();
     bool is_selected(const int& r, const int& c);
+    void copy_to_textBuffer();
+    void paste_to_buffer();
 
     ViewportSize get_view_port_size();
 

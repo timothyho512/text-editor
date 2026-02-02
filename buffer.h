@@ -41,6 +41,8 @@ class Buffer {
     void undo(int& row, int& col);
     void redo(int& row, int& col);
 
+    void paste_textBuffer(std::vector<std::string> textBuffer, const int& r, const int& c);
+
     bool islengthless(int row, int l) const;
 
     int line_count() const;

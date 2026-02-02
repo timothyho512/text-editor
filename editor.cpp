@@ -57,15 +57,6 @@ bool Editor::is_selected(const int& r, const int& c) {
 			if (c <= initial_selection_col) return true;
 		}
 	}
-	// if (cursor.row > initial_selection_row) {
-
-	// }
-	// if ((r <= cursor.row &&  c <= cursor.col) && (r >= initial_selection_row && c >= initial_selection_col)) {
-	// 	return true;
-	// }
-	// if ((r <= initial_selection_row &&  c <= initial_selection_col) && (r >= cursor.row && c >= cursor.col)) {
-	// 	return true;
-	// }
 	return false;
 }
 
@@ -371,6 +362,10 @@ void Editor::handle_input(int ch) {
 		desire_col = cursor.col;
 		adjust_scroll_to_cursor();
 	}
+	// paste from clipboard
+	else if (ch == CTRL_E) {
+		paste_to_buffer();
+	}
 
 	// undo (Ctrl+U)
 	else if (ch == CTRL_U) {
@@ -549,6 +544,61 @@ void Editor::handle_visual_input(int ch) {
 		move_cursor_right();
         adjust_scroll_to_cursor();
 	}
+	else if (ch == CTRL_T) {
+		copy_to_textBuffer();
+	}
+}
+
+void Editor::copy_to_textBuffer() {
+	clipboard.textBuffer.clear();
+	if (initial_selection_row < cursor.row) {
+		for (int i = initial_selection_row; i <= cursor.row; i++) {
+			int row_num = i - initial_selection_row;
+			if (i == initial_selection_row) {
+				string line = buffer.get_line(initial_selection_row);
+				clipboard.textBuffer.push_back(line.substr(initial_selection_col, line.length() - initial_selection_col));
+			}
+			else if (i == cursor.row) {
+				string line = buffer.get_line(cursor.row);
+				clipboard.textBuffer.push_back(line.substr(0, cursor.col));
+			}
+			else {
+				string line = buffer.get_line(i);
+				clipboard.textBuffer.push_back(line);
+			}
+		}
+	}
+	else if (initial_selection_row > cursor.row) {
+		for (int i = cursor.row; i <= initial_selection_row; i++) {
+			int row_num = i - cursor.row;
+			if (i == cursor.row) {
+				string line = buffer.get_line(cursor.row);
+				clipboard.textBuffer.push_back(line.substr(cursor.col, line.length() - cursor.col));
+			}
+			else if (i == initial_selection_row) {
+				string line = buffer.get_line(initial_selection_row);
+				clipboard.textBuffer.push_back(line.substr(0, initial_selection_col));
+			}
+			else {
+				string line = buffer.get_line(i);
+				clipboard.textBuffer.push_back(line);
+			}
+		}
+	}
+	else if (initial_selection_row == cursor.row) {
+		string line = buffer.get_line(initial_selection_row);
+		if (cursor.col > initial_selection_col) {
+			clipboard.textBuffer.push_back(line.substr(initial_selection_col, cursor.col - initial_selection_col));
+		}
+		else if (initial_selection_col > cursor.col) {
+			clipboard.textBuffer.push_back(line.substr(cursor.col, initial_selection_col - cursor.col));
+		}
+	}
+}
+
+void Editor::paste_to_buffer() {
+	buffer.paste_textBuffer(clipboard.textBuffer, cursor.row, cursor.col);
+
 }
 
 void Editor::run() {
