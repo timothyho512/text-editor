@@ -3,6 +3,7 @@
 #include "deletecharcommand.h"
 #include "splitlinecommand.h"
 #include "joinlinecommand.h"
+#include "pastecommand.h"
 #include <fstream>
 #include <algorithm>
 #include <iostream>
@@ -174,25 +175,26 @@ void Buffer::redo(int& row, int& col) {
 	}
 }
 
-void Buffer::paste_textBuffer(std::vector<std::string> textBuffer, const int& r, const int& c) {
-	int size = static_cast<int>(textBuffer.size());
-	if (size == 1) {
-		lines[r].insert(c, textBuffer[0]);
-		return;
-	}
-	string after = lines[r].substr(c, lines[r].length()-c);
-	for (int i = r; i < r + size; i++) {
-		if (i == r) {
-			lines[r].erase(c, lines[r].length()-c);
-			lines[r].insert(c, textBuffer[i-r]);
-		}
-		else if (i > r && i < r + size - 1) {
-			lines.insert(lines.begin() + i, textBuffer[i-r]);
-		}
-		else if (i == r + size - 1) {
-			lines.insert(lines.begin()+i, textBuffer[i-r]+after);
-		}
-	}
+void Buffer::paste_textBuffer(std::vector<std::string> textBuffer, const int& row, const int& col) {
+	// int size = static_cast<int>(textBuffer.size());
+	// if (size == 1) {
+	// 	lines[r].insert(c, textBuffer[0]);
+	// 	return;
+	// }
+	// string after = lines[r].substr(c, lines[r].length()-c);
+	// for (int i = r; i < r + size; i++) {
+	// 	if (i == r) {
+	// 		lines[r].erase(c, lines[r].length()-c);
+	// 		lines[r].insert(c, textBuffer[i-r]);
+	// 	}
+	// 	else if (i > r && i < r + size - 1) {
+	// 		lines.insert(lines.begin() + i, textBuffer[i-r]);
+	// 	}
+	// 	else if (i == r + size - 1) {
+	// 		lines.insert(lines.begin()+i, textBuffer[i-r]+after);
+	// 	}
+	// }
+	execute_and_add_to_history(new PasteCommand(row, col, textBuffer));
 }
 
 

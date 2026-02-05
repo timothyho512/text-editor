@@ -11,6 +11,7 @@ class Buffer {
     friend class DeleteCharCommand;
     friend class SplitLineCommand;
     friend class JoinLineCommand;
+    friend class PasteCommand;
 
 	private:
     std::vector<std::string> lines;
@@ -41,7 +42,7 @@ class Buffer {
     void undo(int& row, int& col);
     void redo(int& row, int& col);
 
-    void paste_textBuffer(std::vector<std::string> textBuffer, const int& r, const int& c);
+    void paste_textBuffer(std::vector<std::string> textBuffer, const int& row, const int& col);
 
     bool islengthless(int row, int l) const;
 

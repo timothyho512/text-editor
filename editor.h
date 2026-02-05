@@ -19,7 +19,6 @@ struct ViewportSize {
 
 struct Clipboard {
     std::vector<std::string> textBuffer;
-    std::vector<std::string> copyBuffer;
 };
 
 enum ControlKeys {

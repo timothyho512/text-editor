@@ -344,6 +344,7 @@ void Editor::handle_input(int ch) {
 			buffer.delete_char(cursor.row, cursor.col);
 			cursor.col--;
 			desire_col = cursor.col;
+			adjust_scroll_to_cursor();
 		}
 		else if (cursor.row > 0) {
 			int prev_len = buffer.line_length(cursor.row - 1);
@@ -351,6 +352,7 @@ void Editor::handle_input(int ch) {
 			cursor.row--;
 			cursor.col = prev_len;
 			desire_col = cursor.col;
+			adjust_scroll_to_cursor();
 		}
 	}
 
@@ -551,54 +553,54 @@ void Editor::handle_visual_input(int ch) {
 
 void Editor::copy_to_textBuffer() {
 	clipboard.textBuffer.clear();
+
+	int start_row = min(initial_selection_row, cursor.row);
+	int end_row = max(initial_selection_row, cursor.row);
+	int start_col, end_col;
+
 	if (initial_selection_row < cursor.row) {
-		for (int i = initial_selection_row; i <= cursor.row; i++) {
-			int row_num = i - initial_selection_row;
-			if (i == initial_selection_row) {
-				string line = buffer.get_line(initial_selection_row);
-				clipboard.textBuffer.push_back(line.substr(initial_selection_col, line.length() - initial_selection_col));
-			}
-			else if (i == cursor.row) {
-				string line = buffer.get_line(cursor.row);
-				clipboard.textBuffer.push_back(line.substr(0, cursor.col));
-			}
-			else {
-				string line = buffer.get_line(i);
-				clipboard.textBuffer.push_back(line);
-			}
-		}
+		start_col = initial_selection_col;
+		end_col = cursor.col;
 	}
 	else if (initial_selection_row > cursor.row) {
-		for (int i = cursor.row; i <= initial_selection_row; i++) {
-			int row_num = i - cursor.row;
-			if (i == cursor.row) {
-				string line = buffer.get_line(cursor.row);
-				clipboard.textBuffer.push_back(line.substr(cursor.col, line.length() - cursor.col));
-			}
-			else if (i == initial_selection_row) {
-				string line = buffer.get_line(initial_selection_row);
-				clipboard.textBuffer.push_back(line.substr(0, initial_selection_col));
-			}
-			else {
-				string line = buffer.get_line(i);
-				clipboard.textBuffer.push_back(line);
-			}
-		}
+		start_col = cursor.col;
+		end_col = initial_selection_col;
 	}
-	else if (initial_selection_row == cursor.row) {
-		string line = buffer.get_line(initial_selection_row);
-		if (cursor.col > initial_selection_col) {
-			clipboard.textBuffer.push_back(line.substr(initial_selection_col, cursor.col - initial_selection_col));
-		}
-		else if (initial_selection_col > cursor.col) {
-			clipboard.textBuffer.push_back(line.substr(cursor.col, initial_selection_col - cursor.col));
-		}
+	else { // initial_selection_row == cursor.row (same row)
+		start_col = min(initial_selection_col, cursor.col);
+		end_col = max(initial_selection_col, cursor.col);
+	}
+
+	for (int i = start_row; i <= end_row; i++) {
+		string line = buffer.get_line(i);
+		if (start_row == end_row) {
+            clipboard.textBuffer.push_back(line.substr(start_col, end_col - start_col));
+        }
+        else if (i == start_row) {
+            clipboard.textBuffer.push_back(line.substr(start_col));
+        }
+        else if (i == end_row) {
+            clipboard.textBuffer.push_back(line.substr(0, end_col));
+        }
+        else {
+            clipboard.textBuffer.push_back(line);
+        }
 	}
 }
 
-void Editor::paste_to_buffer() {
-	buffer.paste_textBuffer(clipboard.textBuffer, cursor.row, cursor.col);
 
+void Editor::paste_to_buffer() {
+	int size = clipboard.textBuffer.size();
+	buffer.paste_textBuffer(clipboard.textBuffer, cursor.row, cursor.col);
+	
+	if (size == 1) {
+		cursor.col = cursor.col + clipboard.textBuffer[0].length();
+	}
+	else {
+		cursor.row = cursor.row + size - 1;
+    	cursor.col = clipboard.textBuffer[size - 1].length();
+	}
+	adjust_scroll_to_cursor();
 }
 
 void Editor::run() {
